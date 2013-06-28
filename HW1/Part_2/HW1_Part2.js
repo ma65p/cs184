@@ -38,7 +38,7 @@ result = PrimeList;
 
 
 var fs = require('fs');
-var outfile = "Frist100Prime.txt";
+var outfile = "First100Prime.txt";
 var  out = result;
 fs.writeFileSync(outfile, out);  
 console.log("Script: " + __filename + "\nWrote: " + out + "To: " + outfile);
