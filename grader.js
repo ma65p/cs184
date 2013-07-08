@@ -20,20 +20,13 @@ References:
    - https://developer.mozilla.org/en-US/docs/JSON
    - https://developer.mozilla.org/en-US/docs/JSON#JSON_in_Firefox_2
 */
-
+var crypto = require('crypto');
 var fs = require('fs');
-var temp = require('temp')
 var program = require('commander');
 var cheerio = require('cheerio');
 var rest = require('restler')
 var HTMLFILE_DEFAULT = "index.html";
 var CHECKSFILE_DEFAULT = "checks.json";
-var exec = require('child_process').exec;
-
-var crypto = require('crypto');
-
-var filename = 'foo'+crypto.randomBytes(4).readUInt32LE(0)+'bar';
-fs.writeFileSync(filename, 'baz');
 
 var assertFileExists = function(infile) {
     var instr = infile.toString();
@@ -69,12 +62,7 @@ var clone = function(fn) {
     // Workaround for commander.js issue.
     // http://stackoverflow.com/a/6772648
     return fn.bind({});
-};
-
-var getRemoteFile = function(url) {
-	rest.get(url).on('complete', function(data) {
-	    return data;})};
-		
+};	
 
 if(require.main == module) {
     program
@@ -83,20 +71,21 @@ if(require.main == module) {
         .option('-u, --url <url>', 'URL to HTML file. Override the --file option')
 		.parse(process.argv);
 	if (program.url) {
-		console.log('URL detected. Use requested file instead of index.html')
-		//Pull the remote file as data
-		var myData = getRemoteFile(program.url);
-		//CReate Temp file from data, process. 
-		temp.open('myprefix', function(err, info) {
-		  fs.write(info.fd, myData);
-		  fs.close(info.fd, function(err) {
-			var checkJson = checkHtmlFile(info.path, program.checks);	
+		//console.log('URL detected. Use requested file instead of index.html')
+		//Pull the remote file as data. Do it asynchronously by working on them during complete only
+		rest.get(program.url).on('complete', function (data) {
+			// Create Temp file from data
+			//http://stackoverflow.com/questions/7055061/nodejs-temporary-file-name
+			var tempFile = 'foo'+crypto.randomBytes(4).readUInt32LE(0)+'bar';
+			fs.writeFileSync(tempFile, data);
+			// Process Temporary file, print output
+			var checkJson = checkHtmlFile(tempFile, program.checks);
 			console.log (JSON.stringify(checkJson,null,4))
-			
-		  });
-		});
+			//Delete Temporary file
+			fs.unlink(tempFile)
+		})	
 	} else {
-		console.log('Using default local index.html')
+		//console.log('Using default local index.html')
 		var checkJson = checkHtmlFile(program.file, program.checks);	
 		var outJson = JSON.stringify(checkJson, null, 4);
 	    console.log(outJson);
