@@ -1,1 +1,0 @@
-curl: (6) Couldn't resolve host 'fakeurl'
